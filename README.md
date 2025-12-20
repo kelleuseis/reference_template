@@ -11,7 +11,7 @@
 
 **Step 5:** Pull from Github repo on Overleaf
 
-**Step 6:** Reuse and link BibTeX reference in other Overleaf Projects via "from another project"
+**Step 6:** Reuse and link BibTeX reference <code>clean_ref.bib</code> in other Overleaf Projects via "from another project"
 
 ------------------------------------------------
 
