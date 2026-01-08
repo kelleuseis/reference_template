@@ -1,6 +1,10 @@
 import re, os, argparse, bibtexparser, unicodedata
 
 def strclean(s):
+    '''
+    Function to normalize special characters to their 
+    ASCII equivalents (e.g. ä/ö/ü -> a/o/u)
+    '''
     s = re.sub(r'\\[a-zA-Z]+\{?([a-zA-Z])\}?', r'\1', s)
     s = unicodedata.normalize("NFKD", s)
     s = s.encode("ascii", "ignore").decode("ascii")
@@ -9,14 +13,8 @@ def strclean(s):
 
 def clean_entries(entries, delete_set, doi_set, id_set, cache_id_set): 
     for entry in entries:
-        if 'abstract' in entry:
-            del entry['abstract']
-
-        if 'keywords' in entry:
-            del entry['keywords']
-
-        if 'language' in entry:
-            del entry['language']
+        for key in ("abstract", "keywords", "language", "note", "file"):   # fields to delete
+            entry.pop(key, None)
 
         try:
             entry['author'] = entry.get('author', '') or entry.get('editor', '')
@@ -26,14 +24,31 @@ def clean_entries(entries, delete_set, doi_set, id_set, cache_id_set):
             doi = entry.get('doi', '')
             
             wordlist = {
-                "the", "and", "of", "for", "to", "in", "on", "at", "with", "a", "an", "by"
+                "the", "and", "of", "for", "to", "in", "on", "at", "with", "a", "an", "by", "from", "without"
             }
+            
+            # title field
             titlelist = re.findall(r"[a-z]+", strclean(entry.get('title', '')))
             titlelist = [w[0] for w in titlelist if w not in wordlist]
             titleabv = "".join(titlelist[:4])
+            
+            # journal field
+            journal = entry.get('journal', '')
+            journal = re.split(r'(\s+|-)', journal)
+            alt_journal = []
+            for i, w in enumerate(journal):
+                if w.isspace() or w == "-":
+                    alt_journal.append(w)
+                elif i == 0 or w not in wordlist:
+                    alt_journal.append(w.capitalize())
+                else:
+                    alt_journal.append(w)
+            entry['journal'] = "".join(alt_journal)
 
             i = 1
-            bib_id = f"{author}{year[-2:]}{titleabv}"
+            bib_id = f"{author}{year[-2:]}{titleabv}"   # citation key format
+            
+            # enforcing unique keys
             alt_bib_id = bib_id
             while alt_bib_id in id_set:
                 alt_bib_id = f"{author}{year[-2:]}{titleabv}{chr(ord('a') + i)}"
